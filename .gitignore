@@ -20,3 +20,13 @@ rad.json
 *.flf
 #Test results file
 TestResults.xml
+
+# Next.js
+.next/
+out/
+node_modules/
+
+# Env (секреты)
+.env
+.env.local
+.env*.local
