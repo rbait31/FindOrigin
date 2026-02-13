@@ -1,9 +1,11 @@
 import type { TelegramUpdate } from "@/types/telegram";
 import { getInputText } from "@/lib/getInputText";
 import { extractEntities } from "@/lib/entities";
+import { searchSources } from "@/lib/search";
 import { sendMessage } from "@/lib/telegram";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? process.env.BOT_TOKEN ?? "";
+const BRAVE_API_KEY = process.env.BRAVE_API_KEY ?? "";
 
 /**
  * Асинхронная обработка: получение текста, извлечение сущностей, ответ пользователю.
@@ -30,19 +32,39 @@ async function processUpdate(chatId: number, update: TelegramUpdate): Promise<vo
   }
 
   const entities = extractEntities(inputText);
-  const summary = [
-    `Утверждений: ${entities.claims.length}`,
-    `Дат: ${entities.dates.length}`,
-    `Чисел: ${entities.numbers.length}`,
-    `Имён: ${entities.names.length}`,
-    `Ссылок: ${entities.links.length}`,
-  ].join(", ");
+  const candidates = await searchSources(entities, BRAVE_API_KEY);
 
-  await sendMessage(
-    BOT_TOKEN,
-    chatId,
-    `Обработано.\n${summary}\n\nПоиск источников и сравнение с AI будут на следующих этапах.`
-  );
+  const categoryLabels: Record<string, string> = {
+    official: "Официальные",
+    news: "Новости",
+    blog: "Блоги",
+    research: "Исследования",
+  };
+  const lines: string[] = ["Найденные кандидаты источников:"];
+  if (candidates.length === 0) {
+    if (!BRAVE_API_KEY) {
+      lines.push("Добавьте BRAVE_API_KEY в .env для поиска (https://api.search.brave.com).");
+    } else {
+      lines.push("По запросу ничего не найдено.");
+    }
+  } else {
+    const byCategory = new Map<string, { url: string; title: string }[]>();
+    for (const c of candidates) {
+      const label = categoryLabels[c.category] ?? c.category;
+      if (!byCategory.has(label)) byCategory.set(label, []);
+      byCategory.get(label)!.push({ url: c.url, title: c.title });
+    }
+    Array.from(byCategory.entries()).forEach(([label, items]) => {
+      lines.push(`\n${label}:`);
+      items.forEach(({ url, title }) => {
+        lines.push(`• ${title}`);
+        lines.push(`  ${url}`);
+      });
+    });
+    lines.push("\nСравнение с AI и выбор 1–3 лучших — на этапе 6.");
+  }
+
+  await sendMessage(BOT_TOKEN, chatId, lines.join("\n"));
 }
 
 export async function POST(request: Request) {
