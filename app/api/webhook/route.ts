@@ -5,7 +5,7 @@ import { searchSources } from "@/lib/search";
 import { sendMessage } from "@/lib/telegram";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? process.env.BOT_TOKEN ?? "";
-const BRAVE_API_KEY = process.env.BRAVE_API_KEY ?? "";
+const SERPSTACK_ACCESS_KEY = process.env.SERPSTACK_ACCESS_KEY ?? "";
 
 /**
  * Асинхронная обработка: получение текста, извлечение сущностей, ответ пользователю.
@@ -32,7 +32,7 @@ async function processUpdate(chatId: number, update: TelegramUpdate): Promise<vo
   }
 
   const entities = extractEntities(inputText);
-  const candidates = await searchSources(entities, BRAVE_API_KEY);
+  const candidates = await searchSources(entities, SERPSTACK_ACCESS_KEY);
 
   const categoryLabels: Record<string, string> = {
     official: "Официальные",
@@ -42,8 +42,8 @@ async function processUpdate(chatId: number, update: TelegramUpdate): Promise<vo
   };
   const lines: string[] = ["Найденные кандидаты источников:"];
   if (candidates.length === 0) {
-    if (!BRAVE_API_KEY) {
-      lines.push("Добавьте BRAVE_API_KEY в .env для поиска (https://api.search.brave.com).");
+    if (!SERPSTACK_ACCESS_KEY) {
+      lines.push("Добавьте SERPSTACK_ACCESS_KEY в .env для поиска (https://serpstack.com).");
     } else {
       lines.push("По запросу ничего не найдено.");
     }
