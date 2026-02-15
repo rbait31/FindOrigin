@@ -7,6 +7,8 @@ import { sendMessage } from "@/lib/telegram";
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? process.env.BOT_TOKEN ?? "";
 const SERPSTACK_ACCESS_KEY = process.env.SERPSTACK_ACCESS_KEY ?? "";
 
+const MAX_MESSAGE_LENGTH = 4000;
+
 /**
  * Асинхронная обработка: получение текста, извлечение сущностей, ответ пользователю.
  * Вызывается после отправки 200 OK.
@@ -28,6 +30,13 @@ async function processUpdate(chatId: number, update: TelegramUpdate): Promise<vo
 
   if (!inputText) {
     await sendMessage(BOT_TOKEN, chatId, "Пришлите текст или ссылку для поиска источников.");
+    return;
+  }
+
+  // Сразу отправляем ответ, чтобы пользователь видел, что бот получил сообщение
+  const sent = await sendMessage(BOT_TOKEN, chatId, "Обрабатываю…");
+  if (!sent) {
+    console.error("[webhook] Не удалось отправить «Обрабатываю…», проверьте BOT_TOKEN");
     return;
   }
 
@@ -64,7 +73,11 @@ async function processUpdate(chatId: number, update: TelegramUpdate): Promise<vo
     lines.push("\nСравнение с AI и выбор 1–3 лучших — на этапе 6.");
   }
 
-  await sendMessage(BOT_TOKEN, chatId, lines.join("\n"));
+  let reply = lines.join("\n");
+  if (reply.length > MAX_MESSAGE_LENGTH) {
+    reply = reply.slice(0, MAX_MESSAGE_LENGTH - 20) + "\n\n… (обрезано)";
+  }
+  await sendMessage(BOT_TOKEN, chatId, reply);
 }
 
 export async function POST(request: Request) {
@@ -82,6 +95,8 @@ export async function POST(request: Request) {
   if (chatId == null) {
     return new Response("OK", { status: 200 });
   }
+
+  console.log("[webhook] Получено сообщение, chatId:", chatId, "text:", (text ?? "").slice(0, 80));
 
   // Сразу возвращаем 200 OK, обработку выполняем "в фоне"
   processUpdate(chatId, update).catch((err) => {
