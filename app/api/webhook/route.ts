@@ -151,10 +151,13 @@ export async function POST(request: Request) {
 
   console.log("[webhook] Получено сообщение, chatId:", chatId, "text:", (text ?? "").slice(0, 80));
 
-  // Сразу возвращаем 200 OK, обработку выполняем "в фоне"
-  processUpdate(chatId, update).catch((err) => {
+  // На Vercel при возврате 200 без await выполнение может завершиться до отправки «Обрабатываю…».
+  // Ждём завершения обработки, затем возвращаем 200 (Telegram допускает ответ до 60 с).
+  try {
+    await processUpdate(chatId, update);
+  } catch (err) {
     console.error("[webhook] processUpdate error:", err);
-  });
+  }
 
   return new Response("OK", { status: 200 });
 }

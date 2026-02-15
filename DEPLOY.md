@@ -92,3 +92,48 @@ Invoke-RestMethod -Uri "https://api.telegram.org/botВАШ_ТОКЕН_БОТА/g
 - **Лимиты запросов:** зависят от вашего плана Vercel.
 
 При необходимости обновите переменные в **Settings** → **Environment Variables** и сделайте **Redeploy**.
+
+---
+
+## Если Vercel не отвечает
+
+### 1. Проверить, что деплой успешен
+
+- В панели Vercel откройте проект → **Deployments**. Последний деплой должен быть в статусе **Ready** (зелёная галочка). Если **Error** или **Building** завис — смотрите **Build Logs** и исправьте ошибку сборки.
+
+### 2. Проверить доступность по URL
+
+Подставьте свой домен Vercel и выполните в PowerShell:
+
+```powershell
+# Главная страница
+Invoke-RestMethod -Uri "https://ВАШ-ПРОЕКТ.vercel.app" -Method Get
+
+# Webhook (должен вернуть JSON с ok: true)
+Invoke-RestMethod -Uri "https://ВАШ-ПРОЕКТ.vercel.app/api/webhook" -Method Get
+```
+
+Если здесь таймаут или 502/503 — проблема на стороне Vercel или сети. Если ответ пришёл — сервер жив, можно смотреть пункты 3–4.
+
+### 3. Переменные окружения
+
+- **Settings** → **Environment Variables**: для **Production** должны быть заданы минимум `BOT_TOKEN` (или `TELEGRAM_BOT_TOKEN`). Без токена бот не сможет отправить ответ.
+- После изменения переменных обязательно сделайте **Redeploy** (Deployments → три точки у последнего деплоя → **Redeploy**).
+
+### 4. Логи функции
+
+- В Vercel: **Deployments** → откройте последний деплой → вкладка **Functions** (или **Logs**). Отправьте боту сообщение и посмотрите, появляются ли запросы к `/api/webhook` и нет ли ошибок (красные строки). По ним можно понять, падает ли обработка (поиск, OpenAI, отправка в Telegram).
+
+### 5. Webhook указан на правильный URL
+
+Убедитесь, что в Telegram прописан именно ваш Vercel-URL с **https** и путём **/api/webhook**:
+
+```powershell
+Invoke-RestMethod -Uri "https://api.telegram.org/botВАШ_ТОКЕН/getWebhookInfo"
+```
+
+В `result.url` должно быть что-то вроде `https://ваш-проект.vercel.app/api/webhook`. Если там старый адрес (ngrok, localtunnel) — вызовите снова **setWebhook** с Vercel-URL (см. раздел 5 выше).
+
+### 6. Таймаут на бесплатном плане
+
+На плане Hobby функция не может работать дольше **10 секунд**. Если поиск + AI занимают больше, Vercel обрежет выполнение и ответ пользователю может не уйти. В логах может быть **Function execution timeout**. Варианты: упростить запросы или перейти на план Pro (там можно до 60 с).
