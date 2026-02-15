@@ -5,6 +5,9 @@ import { searchSources } from "@/lib/search";
 import { rankSourcesWithAI } from "@/lib/ai-rank";
 import { sendMessage } from "@/lib/telegram";
 
+/** Таймаут для Vercel: до 60 с (Pro). На Hobby ограничение 10 с. */
+export const maxDuration = 60;
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? process.env.BOT_TOKEN ?? "";
 const SERPSTACK_ACCESS_KEY = process.env.SERPSTACK_ACCESS_KEY ?? "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
