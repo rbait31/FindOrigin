@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test-search": "node scripts/test-search.js"
+    "test-search": "node scripts/test-search.js",
+    "tunnel": "npx localtunnel --port 3000"
   },
   "dependencies": {
     "next": "^14.2.0",

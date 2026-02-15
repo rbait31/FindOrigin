@@ -66,13 +66,18 @@ async function serpstackSearch(
   }
 
   const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
+  const data = (await res.json()) as SerpstackResponse;
+
+  if (res.status === 429 || data.error?.code === 106) {
+    console.error("[search] serpstack rate limit (429):", data.error?.info ?? "rate_limit_reached");
+    throw new Error("SERPSTACK_RATE_LIMIT");
+  }
 
   if (!res.ok) {
     console.error("[search] serpstack HTTP error:", res.status, await res.text());
     return [];
   }
 
-  const data = (await res.json()) as SerpstackResponse;
   if (data.error) {
     console.error("[search] serpstack API error:", data.error.code, data.error.info);
     return [];
@@ -106,24 +111,29 @@ export async function searchSources(
   const categories: SearchCategory[] = ["official", "news", "blog", "research"];
   const all: CandidateSource[] = [];
 
-  for (const category of categories) {
-    const suffix = CATEGORY_QUERY_SUFFIX[category];
-    const query = `${baseQuery} ${suffix}`.trim();
-    const isNews = category === "news";
-    const raw = await serpstackSearch(
-      accessKey,
-      query,
-      TOP_N_PER_CATEGORY,
-      isNews ? "news" : "web"
-    );
-    for (const r of raw) {
-      all.push({
-        url: r.url,
-        title: r.title,
-        snippet: r.description,
-        category,
-      });
+  try {
+    for (const category of categories) {
+      const suffix = CATEGORY_QUERY_SUFFIX[category];
+      const query = `${baseQuery} ${suffix}`.trim();
+      const isNews = category === "news";
+      const raw = await serpstackSearch(
+        accessKey,
+        query,
+        TOP_N_PER_CATEGORY,
+        isNews ? "news" : "web"
+      );
+      for (const r of raw) {
+        all.push({
+          url: r.url,
+          title: r.title,
+          snippet: r.description,
+          category,
+        });
+      }
     }
+  } catch (err) {
+    if (err instanceof Error && err.message === "SERPSTACK_RATE_LIMIT") throw err;
+    throw err;
   }
 
   return all;

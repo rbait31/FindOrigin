@@ -41,7 +41,20 @@ async function processUpdate(chatId: number, update: TelegramUpdate): Promise<vo
   }
 
   const entities = extractEntities(inputText);
-  const candidates = await searchSources(entities, SERPSTACK_ACCESS_KEY);
+  let candidates: Awaited<ReturnType<typeof searchSources>>;
+  try {
+    candidates = await searchSources(entities, SERPSTACK_ACCESS_KEY);
+  } catch (err) {
+    if (err instanceof Error && err.message === "SERPSTACK_RATE_LIMIT") {
+      await sendMessage(
+        BOT_TOKEN,
+        chatId,
+        "Превышен лимит запросов к поиску (serpstack). Попробуйте позже или обновите тариф на https://serpstack.com"
+      );
+      return;
+    }
+    throw err;
+  }
 
   const categoryLabels: Record<string, string> = {
     official: "Официальные",
@@ -78,6 +91,14 @@ async function processUpdate(chatId: number, update: TelegramUpdate): Promise<vo
     reply = reply.slice(0, MAX_MESSAGE_LENGTH - 20) + "\n\n… (обрезано)";
   }
   await sendMessage(BOT_TOKEN, chatId, reply);
+}
+
+/** GET: проверка доступности webhook через туннель (для отладки). */
+export async function GET() {
+  return new Response(
+    JSON.stringify({ ok: true, message: "FindOrigin webhook доступен. POST сюда шлёт Telegram." }),
+    { status: 200, headers: { "Content-Type": "application/json" } }
+  );
 }
 
 export async function POST(request: Request) {
