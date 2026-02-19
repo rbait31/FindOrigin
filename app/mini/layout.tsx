@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "FindOrigin — поиск источников",
+  title: "Find Truth — поиск источников",
   description: "Введите текст для анализа и поиска источников",
 };
 

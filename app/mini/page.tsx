@@ -92,23 +92,39 @@ export default function MiniPage() {
     >
       <h1
         style={{
-          fontSize: "20px",
+          fontSize: "22px",
           fontWeight: 600,
-          margin: "0 0 16px",
+          margin: "0 0 8px",
           color: "#000",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
         }}
       >
-        FindOrigin
+        <span style={{ fontSize: "24px" }}>🔍</span> Find Truth
       </h1>
-      <p style={{ fontSize: "14px", color: "#6d6d72", margin: "0 0 16px" }}>
-        Введите текст или утверждение — найдём возможные источники и составим резюме.
+      <p style={{ fontSize: "14px", color: "#6d6d72", margin: "0 0 20px" }}>
+        Проверка источников информации
       </p>
 
       <form onSubmit={handleSubmit}>
+        <label
+          htmlFor="text-input"
+          style={{
+            display: "block",
+            fontSize: "14px",
+            fontWeight: 500,
+            color: "#000",
+            marginBottom: "8px",
+          }}
+        >
+          Введите текст для проверки:
+        </label>
         <textarea
+          id="text-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Вставьте текст для анализа..."
+          placeholder="Например: Илон Маск планирует полет на Марс"
           disabled={loading}
           style={{
             width: "100%",
@@ -137,7 +153,7 @@ export default function MiniPage() {
             cursor: loading ? "wait" : "pointer",
           }}
         >
-          {loading ? "Анализирую…" : "Найти источники"}
+          {loading ? "Анализирую…" : "Анализировать"}
         </button>
       </form>
 
