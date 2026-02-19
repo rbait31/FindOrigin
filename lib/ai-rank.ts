@@ -20,7 +20,9 @@ function buildCandidatesText(candidates: CandidateSource[]): string {
 function buildPrompt(userText: string, candidatesText: string): string {
   return `Ты помогаешь найти источники информации. Пользователь прислал текст/утверждение. Ниже список кандидатов-источников (ссылки с заголовками и сниппетами).
 
-Твоя задача: выбрать от 1 до 3 источников, которые лучше всего соответствуют тексту пользователя ПО СМЫСЛУ (не обязательно буквальное совпадение). Это могут быть первоисточник, подтверждение факта или релевантная статья.
+Твои задачи:
+1) Выбрать от 1 до 3 источников, которые лучше всего соответствуют тексту пользователя ПО СМЫСЛУ (не обязательно буквальное совпадение).
+2) На основе введённого текста и информации из найденных источников (заголовки, сниппеты) составить краткое резюме-заключение (2–4 предложения): что утверждается во введённом тексте и о чём говорят эти статьи/источники.
 
 Исходный текст пользователя:
 ---
@@ -33,9 +35,9 @@ ${candidatesText}
 ---
 
 Ответь ТОЛЬКО валидным JSON без markdown и комментариев, в формате:
-{"sources":[{"url":"...","title":"...","confidence":"high"|"medium"|"low"}, ...]}
+{"sources":[{"url":"...","title":"...","confidence":"high"|"medium"|"low"}, ...], "summary":"Краткое резюме-заключение на русском."}
 
-Поле confidence: high — источник явно по теме и надёжен, medium — релевантен, low — слабая связь. Выбери не более 3 источников.`;
+Поле confidence: high — источник явно по теме и надёжен, medium — релевантен, low — слабая связь. Выбери не более 3 источников. Поле summary — обязательно.`;
 }
 
 /**
@@ -44,7 +46,7 @@ ${candidatesText}
 function parseAIResponse(content: string): AIRankingResult | null {
   const trimmed = content.trim().replace(/^```json\s*|\s*```$/g, "");
   try {
-    const parsed = JSON.parse(trimmed) as { sources?: unknown[] };
+    const parsed = JSON.parse(trimmed) as { sources?: unknown[]; summary?: string };
     if (!Array.isArray(parsed.sources)) return null;
     const sources: RankedSource[] = [];
     for (const s of parsed.sources.slice(0, MAX_SOURCES)) {
@@ -57,7 +59,8 @@ function parseAIResponse(content: string): AIRankingResult | null {
         });
       }
     }
-    return sources.length > 0 ? { sources } : null;
+    const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : undefined;
+    return sources.length > 0 ? { sources, summary: summary || undefined } : null;
   } catch {
     return null;
   }
@@ -90,7 +93,7 @@ export async function rankSourcesWithAI(
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
-      max_tokens: 800,
+      max_tokens: 1200,
     }),
   });
 

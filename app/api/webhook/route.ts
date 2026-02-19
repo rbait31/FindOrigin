@@ -85,7 +85,11 @@ async function processUpdate(chatId: number, update: TelegramUpdate): Promise<vo
       else throw err;
     }
     if (ranking && ranking.sources.length > 0) {
-      lines = ["Возможные источники (по смыслу):"];
+      if (ranking.summary) {
+        lines = ["📋 Резюме:", ranking.summary, "", "Возможные источники (по смыслу):"];
+      } else {
+        lines = ["Возможные источники (по смыслу):"];
+      }
       ranking.sources.forEach((s, i) => {
         lines.push(`\n${i + 1}. ${s.title}`);
         lines.push(`   ${s.url}`);

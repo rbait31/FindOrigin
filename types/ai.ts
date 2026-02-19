@@ -10,4 +10,6 @@ export interface RankedSource {
 
 export interface AIRankingResult {
   sources: RankedSource[];
+  /** Краткое резюме-заключение: что утверждается в тексте и о чём говорят источники */
+  summary?: string;
 }
